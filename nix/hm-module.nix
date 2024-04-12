@@ -585,6 +585,12 @@ in {
               default = "Noto Sans";
             };
 
+            font_features = mkOption {
+              description = "Font features to apply on the label";
+              type = str;
+              default = "";
+            };
+
             rotate = mkOption {
               description = "Label rotation angle";
               type = float;
@@ -739,6 +745,7 @@ in {
             color = ${label.color}
             font_size = ${toString label.font_size}
             font_family = ${label.font_family}
+            font_features = ${label.font_features}
             rotate = ${toString label.rotate}
             shadow_passes = ${toString label.shadow_passes}
             shadow_size = ${toString label.shadow_size}

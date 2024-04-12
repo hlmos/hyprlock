@@ -277,10 +277,11 @@ void CAsyncResourceGatherer::renderText(const SPreloadRequest& rq) {
     target.type = TARGET_IMAGE; /* text is just an image lol */
     target.id   = rq.id;
 
-    const int          FONTSIZE   = rq.props.contains("font_size") ? std::any_cast<int>(rq.props.at("font_size")) : 16;
-    const CColor       FONTCOLOR  = rq.props.contains("color") ? std::any_cast<CColor>(rq.props.at("color")) : CColor(1.0, 1.0, 1.0, 1.0);
-    const std::string  FONTFAMILY = rq.props.contains("font_family") ? std::any_cast<std::string>(rq.props.at("font_family")) : "Sans";
-    const bool         ISCMD      = rq.props.contains("cmd") ? std::any_cast<bool>(rq.props.at("cmd")) : false;
+    const int          FONTSIZE     = rq.props.contains("font_size") ? std::any_cast<int>(rq.props.at("font_size")) : 16;
+    const CColor       FONTCOLOR    = rq.props.contains("color") ? std::any_cast<CColor>(rq.props.at("color")) : CColor(1.0, 1.0, 1.0, 1.0);
+    const std::string  FONTFAMILY   = rq.props.contains("font_family") ? std::any_cast<std::string>(rq.props.at("font_family")) : "Sans";
+    const std::string  FONTFEATURES = rq.props.contains("font_features") ? std::any_cast<std::string>(rq.props.at("font_features")) : "";
+    const bool         ISCMD        = rq.props.contains("cmd") ? std::any_cast<bool>(rq.props.at("cmd")) : false;
 
     static auto* const TRIM = (Hyprlang::INT* const*)g_pConfigManager->getValuePtr("general:text_trim");
     std::string        TEXT = ISCMD ? g_pHyprlock->spawnSync(rq.asset) : rq.asset;
@@ -325,6 +326,29 @@ void CAsyncResourceGatherer::renderText(const SPreloadRequest& rq) {
 
     if (!attrList)
         attrList = pango_attr_list_new();
+
+    if (!FONTFEATURES.empty()) {
+        // apply the font features in the config as default
+        PangoAttrIterator*           attrIterator = pango_attr_list_get_iterator(attrList);
+        std::vector<PangoAttribute*> featureAttrs;
+        do {
+            PangoAttribute* attr = pango_attr_iterator_get(attrIterator, PANGO_ATTR_FONT_FEATURES);
+            if (!attr) {
+                int start;
+                int end;
+                pango_attr_iterator_range(attrIterator, &start, &end);
+                PangoAttribute* features = pango_attr_font_features_new(FONTFEATURES.c_str());
+                features->start_index    = start;
+                features->end_index      = end;
+                featureAttrs.push_back(features);
+            }
+        } while (pango_attr_iterator_next(attrIterator));
+        pango_attr_iterator_destroy(attrIterator);
+
+        for (PangoAttribute* attr : featureAttrs) {
+            pango_attr_list_insert(attrList, attr);
+        }
+    }
 
     pango_attr_list_insert(attrList, pango_attr_scale_new(1));
     pango_layout_set_attributes(layout, attrList);
